@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network requests</title>
+    <style>
+        #photoConteiner {
+            text-align: center;
+        }
+
+        #photoInfo {
+            margin-top: 10px;
+        }
+
+        #photoHistory {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="photoConteiner">
+        <img id="photo" src="#" alt="Фото">
+    </div>
+    <div id="photoInfo">
+        <p>Автор фотографии: <span id="photographer"></span></p>
+        <button id="buttonLike">Поставить лайк</button>
+        <span id="likePhoto"></span>
+    </div>
+    <div id="photoHistory">
+        <h2>История фотографий</h2>
+        <ul id="historyList"></ul>
+    </div>
+    <script>
+     const photo = document.getElementById('photo');
+        const photographer = document.getElementById('photographer');
+        const buttonLike = document.getElementById('buttonLike');
+        const likePhoto = document.getElementById('likePhoto');
+        const historyList = document.getElementById('historyList');
+
+        //Получаем данные из localStorage, если нет, то получаем объект
+        let photoHistory = JSON.parse(localStorage.getItem('photoHistory')) || [];
+
+        // Функция обновления отображения лайков для текущей фотографии
+        function updateCurrentPhotoLikes() {
+            const currentPhoto = photoHistory.find(item => item.url === photo.src);
+            likePhoto.textContent = currentPhoto ? currentPhoto.likes : 0;
+        }
+
+       
+
+        // Функция обновления списка истории лайками
+        function updateHistory() {
+            historyList.innerHTML = '';
+            photoHistory.forEach(photoData => {
+                const listItem = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = photoData.url;
+                link.target = '_blank';
+                link.textContent = `${photoData.photographer}: ${photoData.likes} - лайков`;
+                listItem.appendChild(link);
+                historyList.appendChild(listItem);
+            });
+        }
+
+        //Функция получения случайной фотографии
+        async function fetchPhoto() {
+            try {
+                const response = await fetch('https://api.unsplash.com/photos/random?client_id=abZVsNKTaYFwIxwq1MoaauPId39hQnm6wwh1ejKsFIg');
+                if (!response.ok) {
+                    throw new Error(`Ошибка сети`);
+                }
+                const data = await response.json();
+                const photoData = {
+                    url: data.urls.small,
+                    photographer: data.user.name,
+                    timestamp: Date.now(),
+                    likes: 0
+                };
+                
+
+                photo.src = photoData.url;
+                photographer.textContent = photoData.photographer;
+                photoHistory.unshift(photoData);
+                localStorage.setItem('photoHistory', JSON.stringify(photoHistory));
+                updateHistory();
+                updateCurrentPhotoLikes(); //Обновить лайки для текущей фотографии
+            } catch (error) {
+                console.error('Ошибка', error);
+            }
+        }
+
+        // Слушатель события кнопки 
+        buttonLike.addEventListener('click', () => {
+            const currentPhoto = photoHistory.find(item => item.url === photo.src);
+            if (currentPhoto) {
+                currentPhoto.likes++;
+                localStorage.setItem('photoHistory', JSON.stringify(photoHistory));
+                updateCurrentPhotoLikes();
+                updateHistory(); //Обновить историю, чтобы отразить аналогичные изменения.
+            }
+        });
+
+        // Инициализируем запрос 
+        fetchPhoto();
+    </script>
+</body>
+</html>
